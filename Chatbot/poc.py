@@ -43,7 +43,6 @@
 
 # Start by greeting the user and asking
 
-
 #  how you can assist them today.
 
 # Conversation History:
@@ -171,7 +170,7 @@ def main():
 
     while True:
         user_input = input("You: ").strip()
-        if user_input.lower() in ["exit", "quit", "Thank you"]:
+        if user_input.lower() in ["exit", "quit", "thank you"]:
             print(
                 "AI Broker: Thank you for using our service. Let's review the information you've provided."
             )
@@ -181,8 +180,6 @@ def main():
         ai_response = conversation.predict(input=user_input)
         print(f"AI Broker: {ai_response.strip()}")
 
-    # After the conversation ends, summarize the conversation
-    # Get the conversation history
     conversation_history = memory.load_memory_variables({})["history"]
 
     # Run the summarization chain
