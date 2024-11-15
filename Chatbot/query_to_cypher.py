@@ -2,6 +2,7 @@ from neo4j import GraphDatabase
 import requests
 from neo4j.exceptions import CypherSyntaxError
 import re
+import os
 
 def connect_to_graph_db(uri, auth):
     # print("--------- connect_to_graph_db --------------")
@@ -194,13 +195,13 @@ def run_query(uri, auth, openai_api_key, question):
 
 if __name__ == "__main__":
    
-   openai_key = "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"
-   neo4j_URI = "neo4j+ssc://6f4de360.databases.neo4j.io:7687"
-   neo4j_AUTH = ("neo4j", "yVsGWUmODVg0hAFAioEcWSLdzgFpQAO7k6kD2mjpOoE")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    neo4j_URI = os.getenv("NEO4J_URI")
+    neo4j_AUTH = (os.getenv("NEO4J_USER"), os.getenv("NEO4J_PASSWORD"))
    
-   question = "Collected User Preferences:Area: Queensberry,Budget: 2500-3000,Bedrooms: 1,Bathrooms: 1,Food Preferences: Indian food places nearby,Park: No"
-   results = run_query(neo4j_URI, neo4j_AUTH, openai_key, question)
-   print("Query Results:", results)
+    question = "Collected User Preferences:Area: Queensberry,Budget: 2500-3000,Bedrooms: 1,Bathrooms: 1,Food Preferences: Indian food places nearby,Park: No"
+    results = run_query(neo4j_URI, neo4j_AUTH, openai_key, question)
+    print("Query Results:", results)
 
 
 
