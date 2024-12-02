@@ -23,9 +23,15 @@ class GraphDB:
     def close(self):
         self.driver.close()
 
-    def create_zipcode(self, zipcode):
+    def create_zipcode(self, zipcode, neighborhood, summary, walk_score, transit_score):
         with self.driver.session() as session:
-            session.run("CREATE (z:Zipcode {zipcode: $zipcode})", zipcode=zipcode)
+            session.run("""CREATE (z:Zipcode {
+                        zipcode: $zipcode,
+                        neighborhood_name: $neighborhood,
+                        neighborhood_summary: $summary,
+                        neighborhood_walk_score: $walk_score,
+                        neighborhood_transit_score: $transit_score
+                        })""", zipcode=zipcode, neighborhood = neighborhood, summary = summary, walk_score = walk_score, transit_score = transit_score)
 
     def create_apartment(self, zpid, address, bedroom_count, bathroom_count, rent, living_area, transit_score, latitude, longitude, url, image_url, zipcode, building_name, lot_id, property_type, unit):
         with self.driver.session() as session:
@@ -55,7 +61,7 @@ class GraphDB:
                 rent=rent, living_area=living_area, transit_score=transit_score,
                 latitude=latitude, longitude=longitude, url=url, image_url=image_url, zipcode=zipcode, building_name=building_name, lot_id=lot_id, property_type=property_type, unit=unit)
 
-    def create_census(self, zipcode, population, hispanic_latino, white, black, american_indian, asian, native_hawaiian, some_other_race):
+    def create_census(self, zipcode, population, hispanic_latino, white, black, american_indian, asian, native_hawaiian, some_other_race, demographics_education_workforce):
         with self.driver.session() as session:
             session.run("""
                 CREATE (c:Census {
@@ -67,7 +73,8 @@ class GraphDB:
                     american_indian: $american_indian,
                     asian: $asian,
                     native_hawaiian: $native_hawaiian,
-                    some_other_race: $some_other_race
+                    some_other_race: $some_other_race,
+                    demographics_education_workforce: $demographics_education_workforce
                 })
                 WITH c
                 MATCH (z:Zipcode {zipcode: $zipcode})
@@ -79,7 +86,8 @@ class GraphDB:
             american_indian=american_indian,
             asian=asian,
             native_hawaiian=native_hawaiian,
-            some_other_race=some_other_race)
+            some_other_race=some_other_race,
+            demographics_education_workforce=demographics_education_workforce)
 
     '''
     def create_utilities(self, zipcode, category, total_cost):
@@ -109,18 +117,20 @@ class GraphDB:
                 CREATE (z)-[:has_Utilities]->(u)
             """, zipcode=zipcode, electric=electric, natural_gas = natural_gas, steam = steam, water = water, total_cost=total_cost)
 
-    def create_crime(self, zipcode, summary, safety_score):
+    def create_crime(self, zipcode, detail, area_stat, national_average):
         with self.driver.session() as session:
             session.run("""
                 CREATE (c:Crime {
-                    zipcode: $zipcode, 
-                    crime_summary: $summary, 
-                    safety_score: $safety_score
+                    crime_zipcode: $zipcode, 
+                    crime_detail: $detail, 
+                    crime_area_stat: $area_stat,
+                    crime_national_average: $national_average
+                    
                 })
                 WITH c
                 MATCH (z:Zipcode {zipcode: $zipcode})
                 CREATE (z)-[:has_Crime]->(c)
-            """, zipcode=zipcode, summary=summary, safety_score=safety_score)
+            """, zipcode=zipcode, detail=detail, area_stat=area_stat, national_average = national_average)
 
     def create_park(self, name, address, acreage, type_, zipcode):
         with self.driver.session() as session:
@@ -129,13 +139,30 @@ class GraphDB:
                     openspace_name: $name,
                     openspace_address: $address, 
                     openspace_acreage: $acreage, 
-                    openspace_type: $type 
-                    
+                    openspace_type: $type, 
+                    openspace_zipcode: $zipcode
                 })
                 WITH p
                 MATCH (z:Zipcode {zipcode: $zipcode})
                 CREATE (z)-[:has_Parks]->(p)
             """, name=name, address=address, acreage=acreage, type=type_, zipcode=zipcode)
+    
+    def create_subway(self, name, line, route, zipcode, latitude, longitude):
+        with self.driver.session() as session:
+            session.run("""
+                CREATE (s:Subway {
+                    subway_station_name: $name,
+                    subway_line: $line, 
+                    subway_route: $route, 
+                    subway_zip_code: $zipcode, 
+                    subway_latitude: $latitude,
+                    subway_longitude: $longitude
+                    
+                })
+                WITH s
+                MATCH (z:Zipcode {zipcode: $zipcode})
+                CREATE (z)-[:has_SubwayStation]->(s)
+            """, name=name, line=line, route=route, zipcode=zipcode, latitude=latitude, longitude=longitude)
     '''
     def create_restaurant(self, name, cuisine, address, latitude, longitude, zipcode):
         with self.driver.session() as session:
@@ -258,19 +285,29 @@ class GraphDB:
                 }]->(p)
             """, apartment_zpid=apartment_zpid, park_name=park_name,
                 walking_time=walking_time, distance=distance)
-
+    
+    def create_nearby_subwaystation(self, apartment_zpid, subway_station_name, walking_time, distance):
+        with self.driver.session() as session:
+            session.run("""
+                MATCH (a:Apartment {apt_zpid: $apartment_zpid}), (s:Subway {subway_station_name: $subway_station_name})
+                CREATE (a)-[:has_nearby_subwaystation {
+                    walking_time: $walking_time, distance: $distance
+                }]->(s)
+            """, apartment_zpid=apartment_zpid, subway_station_name=subway_station_name,
+                walking_time=walking_time, distance=distance)
 
 # Example usage
 if __name__ == "__main__":
     graph = GraphDB(URI, AUTH)
 
-    graph.create_zipcode("12345")
+    graph.create_zipcode("12345",'ABRA','SummaryABRA','85/100','99/100')
 
     graph.create_apartment(123, "123 Main St", 2, 1, 1200, 800, 8, 40.7128, -74.0060, "http://example.com/apartment1", "http://example.com/image1.jpg", "12345",'ABCD', 123, '3bed', 2)
-    graph.create_census(zipcode="12345", population=5000, hispanic_latino=15, white=60, black=30, american_indian=2, asian=8, native_hawaiian=1, some_other_race=4)
+    graph.create_census(zipcode="12345", population=5000, hispanic_latino=15, white=60, black=30, american_indian=2, asian=8, native_hawaiian=1, some_other_race=4, demographics_education_workforce="{'High School Graduates': '91.1%'}")
     graph.create_utilities("12345", 96, 19, 0,  1, 150)
-    graph.create_crime("12345", "Low crime rate in the area", 8.5)
+    graph.create_crime("12345", "1 - Low Crime, 10 - High Crime", '{"AssaultWithWeapon": 3,"Burglary": 4,"CrimeScore": 3,"Homicide": 3,"Larceny": 3,"MotorVehicleTheft": 2,"Robbery": 4,"SexualAssault": 4}','{"AssaultWithWeapon": 4,"Burglary": 4,"CrimeScore": 4,"Homicide": 4,"Larceny": 4,"MotorVehicleTheft": 4,"Robbery": 4,"SexualAssault": 4}')
     graph.create_park("Central Park", "59th St & 5th Ave", 843, "Public Park", "12345")
+    graph.create_subway('ABC Station', 'ABC Line', 'ABC Route', '12345', 40.1728, -74.0070)
     graph.create_restaurant(
         id=1,
         name="Pasta Palace",
@@ -298,5 +335,6 @@ if __name__ == "__main__":
 
     graph.create_nearby_restaurant(123, 1, "10 minutes", "0.5 miles")
     graph.create_nearby_park(123, "Central Park", "5 minutes", "0.25 miles")
+    graph.create_nearby_subwaystation(123, "ABC Station", "6 minutes", "0.35 miles")
 
     graph.close()
