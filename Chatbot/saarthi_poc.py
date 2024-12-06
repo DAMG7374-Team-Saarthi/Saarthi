@@ -8,16 +8,16 @@ from langchain.memory import ConversationBufferMemory
 from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from get_context_data import get_crime_context, get_restaurant_context, get_park_context, get_demographics_context
-from saarthi_guards import guard, topic_guard
+from saarthi_guards import guard, ban_guard
 from guardrails.errors import ValidationError
-
+import openai
+import uuid
+from saarthi_analytics import insert_text, init_duckdb_connection, create_table, update_text
 load_dotenv()
 
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_AUTH_USER")
 neo4j_password = os.getenv("NEO4J_AUTH_PASSWORD")
-
-# ---------> helper functions
 
 # Function to identify the intent and extract area/feature
 def parse_user_query(query):
@@ -71,27 +71,60 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 # Streamlit app
 def main():
+    if 'conversation_id' not in st.session_state:
+        st.session_state.conversation_id = str(uuid.uuid4())
     st.set_page_config(page_title="Saarthi Chatbot", layout="wide")
     st.title("Saarthi- Guiding you home")
+    
+    if 'feedback_disabled' not in st.session_state:
+        st.session_state.feedback_disabled = True
 
-    # Sidebar navigation
-    # with st.sidebar:
-    #     st.title("Navigation")
-    #     page = st.radio("Go to", ["Saarthi Chatbot", "Option 2", "Option 3"])
-
-    # if page == "Saarthi Chatbot":
+    st.session_state.summary = None    
+    
     display_chatbot()
-    # elif page == "Option 2":
-    #     st.write("Option 2 content goes here.")
-    # elif page == "Option 3":
-    #     st.write("Option 3 content goes here.")
+    display_feedback()
 
+
+def display_feedback():
+    if not st.session_state.feedback_disabled:
+        st.divider()
+        st.subheader("Feedback Form")
+        
+        if 'feedback_submitted' not in st.session_state:
+            st.session_state.feedback_submitted = False
+
+        if not st.session_state.feedback_submitted:
+            with st.form(key="feedback_form"):
+                name = st.text_input("Name")
+                rating = st.slider("Rate your experience", 1, 5, 3)
+                comments = st.text_area("Additional comments")
+                submit_button = st.form_submit_button("Submit Feedback")
+            
+            if submit_button:
+                try:
+                    update_text(st.session_state.conn, st.session_state.conversation_id, comments, rating, name)
+                    st.session_state.conn.commit()
+                    df = st.session_state.conn.execute("SELECT * FROM saarthi_talks;").df()
+                    print(df)
+                    st.session_state.feedback_submitted = True
+                    st.success("Thank you for your feedback!")
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
+        else:
+            st.success("Thank you for your feedback!")
+            if st.button("Submit Another Feedback"):
+                st.session_state.feedback_submitted = False
+                st.rerun()
+
+ 
 
 def display_chatbot():
+    # Add this line at the beginning of your script if it's not already there
+    if "input_disabled" not in st.session_state:
+        st.session_state.input_disabled = False
     st.header("Chat with Saarthi")
 
     if "conversation" not in st.session_state:
-        # Conversation prompt template
         conversation_prompt = PromptTemplate(
             input_variables=["history", "input"],
             template="""
@@ -143,27 +176,24 @@ AI Broker:""",
         summarization_prompt = PromptTemplate(
             input_variables=["conversation"],
             template="""
-Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference, and his personal preferences.
+                    Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference, and his personal preferences.
 
-Conversation:
-{conversation}
+                    Conversation:
+                    {conversation}
 
-Summary:
-""",
+                    Summary:
+                    """,
         )
         summarization_chain = LLMChain(
             llm=llm,
             prompt=summarization_prompt,
             verbose=False,
         )
-
         # Store in session state
         st.session_state.summarization_chain = summarization_chain
-
     # Initialize session state for chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
-
         # Start the conversation
         ai_response = st.session_state.conversation.predict(input="")
         st.session_state.messages.append({"role": "assistant", "content": ai_response})
@@ -177,15 +207,21 @@ Summary:
 
     # Use a form to get user input and clear input field after submission
     with st.form(key="user_input_form", clear_on_submit=True):
-        user_input = st.text_input("You:", placeholder="Type your message here...")
+        user_input = st.text_input("Enter your message:", key="user_input", disabled=st.session_state.input_disabled)
         submit_button = st.form_submit_button(label="Send")
-
     if submit_button and user_input:
-        
         try:
             # Validate user input using Guardrails    
             guard.validate(user_input)
-            topic_guard.validate(user_input)
+            try: 
+                ban_guard.validate(user_input)
+            except Exception as e:
+                # Handle unusual prompts or validation failures
+                ai_response = "BAN word!!!"
+                st.session_state.messages.append(
+                        {"role": "assistant", "content": ai_response}
+                    )
+                st.rerun()  
 
             classification = classify_user_input(user_input)
 
@@ -198,33 +234,32 @@ Summary:
                     )
                 st.rerun()
         
-            # st.error(f"Input validation failed: {str(e)}")
-
 
             else: 
                 if user_input.lower().strip() in ["yeah", "let's go", "I am ready", "go ahead"]:
-                    # Trigger summarization chain
-                    # st.session_state.messages.append({"role": "user", "content": user_input})
-                    conversation_history = st.session_state.memory.load_memory_variables({})[
-                        "history"
-                    ]
+                    # Process conversation and preferences
+                    conversation_history = st.session_state.memory.load_memory_variables({})["history"]
                     extracted_preferences = st.session_state.summarization_chain.run(
                         conversation=conversation_history
                     )
+                    st.session_state.summary = extracted_preferences
                     st.subheader("Collected User Preferences")
                     st.write(extracted_preferences.strip())
-                    st.session_state.messages = []
-                    st.session_state.conversation = None
-                    st.session_state.memory = None
-                    st.session_state.summarization_chain = None
-                else:
-                    st.session_state.messages.append({"role": "user", "content": user_input})
+                    st.session_state.input_disabled = True
+                    
+                    message_count = len(st.session_state.messages)
+                    st.session_state.conn = init_duckdb_connection()
+                    create_table(st.session_state.conn)
+                    insert_text(st.session_state.conn, st.session_state.conversation_id, extracted_preferences, message_count)
+                    st.session_state.feedback_disabled = False
 
+                else:
+                    # Default user input handling
+                    st.session_state.messages.append({"role": "user", "content": user_input})
                     ai_response = st.session_state.conversation.predict(input=user_input)
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": ai_response}
-                    )
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
                     st.rerun()
+
                     
         except ValidationError as e:
             # If validation fails, display an error message
@@ -234,12 +269,10 @@ Summary:
                 )
             st.rerun()            
 
+
 # ------------------------------------------>
 # Define the classification function
 def classify_user_input(user_input):
-    """
-    Classify user input as either 'question' or 'answer'.
-    """
     # Define the classification chain
     classification_chain = (
         PromptTemplate.from_template(
@@ -260,21 +293,17 @@ Classification:"""
 
 
 def handle_question_chain(user_input):
-    # Access the same memory object being used by the other chain
     memory = st.session_state.memory  
     # Define your logic for handling questions here
     llm = ChatOpenAI(temperature=0, model_name="gpt-4")
     uri = neo4j_uri
     auth = (neo4j_user, neo4j_password)
-    # ----->adding context logic
     zipcode, feature = parse_user_query(user_input)
     context = None
     if zipcode and feature:
         context = get_context_from_graph(zipcode, feature, uri, auth)
         if not context:
             context = "No specific information was found for this query. Here is general information about crime in Boston."
-
-    # --------> Ending context logic
 
     # Combine context and user input into a single key for memory compatibility
     combined_input = f"Context: {context or 'General information'}\nQuestion: {user_input}"
@@ -283,8 +312,8 @@ def handle_question_chain(user_input):
     question_prompt = PromptTemplate.from_template(
         '''You are an assistant specializing in answering general questions related to the city of Boston, or highly specific questions related to the crime, demographics in Fenway, South Boston, Back Bay area of boston.
         You do not respond to any other question which is not related to the city of Boston. Limit your response to a maximum of 70 words or below that. 
-        If unrelated, kindly remind them of what the Saarthi app does and how it is helpful.
-        Make use of the context provided to answer any question related to crime or demographics in a particular area. user might twist their words. Infer what they are trying to ask.
+        If unrelated, kindly remind them of what the Saarthi app does and how it is helpful. DO NOT HALLUCINATE OR MAKE UP ANY FALSE INFORMATION. 
+        Make use of the context provided to answer any question related to crime, demographics, restaurants in a particular area. User might twist their words. Infer what they are trying to ask.
 
         Conversation History:
         {history}
@@ -301,8 +330,6 @@ def handle_question_chain(user_input):
     return question_chain.run(combined_input=combined_input)
 
 # ------------------------------------>
-
-
 if __name__ == "__main__":
     main()
 
