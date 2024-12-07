@@ -4,6 +4,7 @@ import folium
 from streamlit_folium import st_folium
 from folium import plugins
 from get_similar_groups import get_groups_for_user
+from get_transformed_apartment_data import transform_apartment_data
 
 # Custom CSS for styling
 st.markdown("""
@@ -92,65 +93,337 @@ st.markdown("""
 
 # Sample Query Results with Additional Amenities
 query_results = [
-    {
-        "apt_address": "123 Main St",
-        "apt_bedroom_count": 2,
-        "apt_bathroom_count": 1,
-        "apt_rent": 3400,
-        "apt_living_area": 850,
-        "apt_transit_score": 85,
-        "apt_latitude": 42.345,
-        "apt_longitude": -71.089,
-        "apt_url": "https://www.zillow.com//apartments/123-main-st/",
-        "apt_image_url": "https://via.placeholder.com/150",
-        "apt_zip_code": "02115",
-        "apt_building_name": "The Plaza",
-        "apt_unit": "5B",
-        "restaurants": [
-            {"name": "Pizza Palace", "yelp_link": "https://yelp.com/pizza-palace", "cuisine": "Italian", "walking_time": "5 mins"},
-            {"name": "Burger Bistro", "yelp_link": "https://yelp.com/burger-bistro", "cuisine": "American", "walking_time": "7 mins"},
-            {"name": "Sushi Spot", "yelp_link": "https://yelp.com/sushi-spot", "cuisine": "Japanese", "walking_time": "9 mins"}
-        ],
-        "parks": [
-            {"name": "Central Park", "walking_distance": "3 mins"},
-            {"name": "Riverside Park", "walking_distance": "8 mins"},
-            {"name": "Elm Grove", "walking_distance": "10 mins"}
-        ],
-        "subway_stations": [
-            {"name": "Downtown Station", "walking_time": "6 mins"},
-            {"name": "City Center Station", "walking_time": "9 mins"}
-        ]
+  {
+    "Apartment": {
+      "apt_address": "19 Peterborough St, Boston, MA",
+      "apt_unit": 1,
+      "apt_building_name": "NotAvailable",
+      "apt_rent": "$3350",
+      "apt_bedroom_count": 2,
+      "apt_bathroom_count": 1,
+      "apt_living_area": "nan sq ft",
+      "apt_transit_score Score": 95,
+      "apt_latitude": 42.34434,
+      "apt_longitude": -71.09599,
+      "apt_url": "https://www.zillow.com//apartments/boston-ma/19-peterborough-st-apt-33/5Xj92v/",
+      "apt_image_url": "https://photos.zillowstatic.com/fp/f1ef1bfd8fc7ec162529d78a526f38f2-p_e.jpg"
     },
-    {
-        "apt_address": "456 Elm St",
-        "apt_bedroom_count": 3,
-        "apt_bathroom_count": 2,
-        "apt_rent": 4500,
-        "apt_living_area": 1200,
-        "apt_transit_score": 90,
-        "apt_latitude": 42.350,
-        "apt_longitude": -71.080,
-        "apt_url": "https://www.zillow.com//apartments/456-elm-st/",
-        "apt_image_url": "https://via.placeholder.com/150",
-        "apt_zip_code": "02116",
-        "apt_building_name": "CityView Apartments",
-        "apt_unit": "7A",
-        "restaurants": [
-            {"name": "Taco Town", "yelp_link": "https://yelp.com/taco-town", "cuisine": "Mexican", "walking_time": "4 mins"},
-            {"name": "Pasta Place", "yelp_link": "https://yelp.com/pasta-place", "cuisine": "Italian", "walking_time": "6 mins"},
-            {"name": "Curry Corner", "yelp_link": "https://yelp.com/curry-corner", "cuisine": "Indian", "walking_time": "8 mins"}
-        ],
-        "parks": [
-            {"name": "Lakeside Park", "walking_distance": "5 mins"},
-            {"name": "Green Meadows", "walking_distance": "7 mins"},
-            {"name": "Hilltop View", "walking_distance": "9 mins"}
-        ],
-        "subway_stations": [
-            {"name": "Uptown Station", "walking_time": "5 mins"},
-            {"name": "East Side Station", "walking_time": "8 mins"}
-        ]
+    "Nearby Places": {
+      "Parks": [
+        {
+          "openspace_name": "Agassiz Road",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.5 km",
+          "walking_time Time": "7 mins"
+        },
+        {
+          "openspace_name": "Ramler Park",
+          "openspace_type": "Parks, Playgrounds & Athletic Fields",
+          "distance": "0.5 km",
+          "walking_time Time": "7 mins"
+        },
+        {
+          "openspace_name": "Park Drive I",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.6 km",
+          "walking_time Time": "9 mins"
+        }
+      ],
+      "Restaurants": [
+        {
+          "restaurant_name": "Blaze Pizza",
+          "restaurant_cuisine": "Other",
+          "restaurant_rating": 4.0,
+          "distance": "0.1 km",
+          "walking_time Time": "2 mins",
+          "restaurant_url": "https://www.yelp.com/biz/blaze-pizza-boston?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Citizen Public House & Oyster Bar",
+          "restaurant_cuisine": "Other",
+          "restaurant_rating": 3.7,
+          "distance": "0.2 km",
+          "walking_time Time": "2 mins",
+          "restaurant_url": "https://www.yelp.com/biz/citizen-public-house-and-oyster-bar-boston?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Wow Tikka",
+          "restaurant_cuisine": "Indian",
+          "restaurant_rating": 4.7,
+          "distance": "0.3 km",
+          "walking_time Time": "4 mins",
+          "restaurant_url": "https://www.yelp.com/biz/wow-tikka-boston-2?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        }
+      ],
+      "Subway Stations": [
+        {
+          "subway_station_name": "Fenway",
+          "subway_line": "GREEN",
+          "subway_route": "D - Riverside",
+          "distance": "0.9 km",
+          "walking_time": "13 mins"
+        },
+        {
+          "subway_station_name": "Museum Of Fine Arts",
+          "subway_line": "GREEN",
+          "subway_route": "E - Health Street",
+          "distance": "1.1 km",
+          "walking_time": "15 mins"
+        }
+      ]
     }
+  },
+  {
+    "Apartment": {
+      "apt_address": "100 Queensberry St, Boston, MA",
+      "apt_unit": 2,
+      "apt_building_name": "NotAvailable",
+      "apt_rent": "$3400",
+      "apt_bedroom_count": 2,
+      "apt_bathroom_count": 1,
+      "apt_living_area": "nan sq ft",
+      "apt_transit_score Score": 80,
+      "apt_latitude": 42.341835,
+      "apt_longitude": -71.09955,
+      "apt_url": "https://www.zillow.com//b/100-queensberry-street-boston-ma-5Xj8JZ/",
+      "apt_image_url": "https://photos.zillowstatic.com/fp/884091dc7b30e72320fdc393ce3d1cdc-p_e.jpg"
+    },
+    "Nearby Places": {
+      "Parks": [
+        {
+          "openspace_name": "Ramler Park",
+          "openspace_type": "Parks, Playgrounds & Athletic Fields",
+          "distance": "0.3 km",
+          "walking_time Time": "4 mins"
+        },
+        {
+          "openspace_name": "Park Drive I",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.4 km",
+          "walking_time Time": "5 mins"
+        },
+        {
+          "openspace_name": "Park Drive II",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.4 km",
+          "walking_time Time": "5 mins"
+        }
+      ],
+      "Restaurants": [
+        {
+          "restaurant_name": "Wow Tikka",
+          "restaurant_cuisine": "Indian",
+          "restaurant_rating": 4.7,
+          "distance": "0.2 km",
+          "walking_time Time": "3 mins",
+          "restaurant_url": "https://www.yelp.com/biz/wow-tikka-boston-2?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Rod Thai Family Taste",
+          "restaurant_cuisine": "Other",
+          "restaurant_rating": 4.0,
+          "distance": "0.2 km",
+          "walking_time Time": "3 mins",
+          "restaurant_url": "https://www.yelp.com/biz/rod-thai-family-taste-boston-2?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "The Greek Gyro",
+          "restaurant_cuisine": "Other",
+          "restaurant_rating": 4.6,
+          "distance": "0.2 km",
+          "walking_time Time": "3 mins",
+          "restaurant_url": "https://www.yelp.com/biz/the-greek-gyro-boston-2?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        }
+      ],
+      "Subway Stations": [
+        {
+          "subway_station_name": "Fenway",
+          "subway_line": "GREEN",
+          "subway_route": "D - Riverside",
+          "distance": "0.7 km",
+          "walking_time": "10 mins"
+        },
+        {
+          "subway_station_name": "Museum Of Fine Arts",
+          "subway_line": "GREEN",
+          "subway_route": "E - Health Street",
+          "distance": "1.0 km",
+          "walking_time": "15 mins"
+        }
+      ]
+    }
+  },
+  {
+    "Apartment": {
+      "apt_address": "12 Aberdeen St #2, Boston, MA 02215",
+      "apt_unit": 99,
+      "apt_building_name": "NotAvailable",
+      "apt_rent": "$3400",
+      "apt_bedroom_count": 2,
+      "apt_bathroom_count": 1,
+      "apt_living_area": "768.0 sq ft",
+      "apt_transit_score Score": 85,
+      "apt_latitude": 42.346367,
+      "apt_longitude": -71.10357,
+      "apt_url": "https://www.zillow.com//homedetails/12-Aberdeen-St-2-Boston-MA-02215/59168538_zpid/",
+      "apt_image_url": "https://photos.zillowstatic.com/fp/e5ab84c31704cd93bd25d3bc1eb83be2-p_e.jpg"
+    },
+    "Nearby Places": {
+      "Parks": [
+        {
+          "openspace_name": "Park Drive I",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.5 km",
+          "walking_time Time": "8 mins"
+        },
+        {
+          "openspace_name": "Park Drive II",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.5 km",
+          "walking_time Time": "8 mins"
+        },
+        {
+          "openspace_name": "Ramler Park",
+          "openspace_type": "Parks, Playgrounds & Athletic Fields",
+          "distance": "0.7 km",
+          "walking_time Time": "10 mins"
+        }
+      ],
+      "Restaurants": [
+        {
+          "restaurant_name": "Audubon Boston",
+          "restaurant_cuisine": "Other",
+          "restaurant_rating": 4.2,
+          "distance": "0.2 km",
+          "walking_time Time": "3 mins",
+          "restaurant_url": "https://www.yelp.com/biz/audubon-boston-boston?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Inchu",
+          "restaurant_cuisine": "Korean",
+          "restaurant_rating": 3.8,
+          "distance": "0.4 km",
+          "walking_time Time": "6 mins",
+          "restaurant_url": "https://www.yelp.com/biz/inchu-boston?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Gogo ya",
+          "restaurant_cuisine": "Mexican",
+          "restaurant_rating": 3.8,
+          "distance": "0.4 km",
+          "walking_time Time": "6 mins",
+          "restaurant_url": "https://www.yelp.com/biz/gogo-ya-boston?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        }
+      ],
+      "Subway Stations": [
+        {
+          "subway_station_name": "Fenway",
+          "subway_line": "GREEN",
+          "subway_route": "D - Riverside",
+          "distance": "0.2 km",
+          "walking_time": "4 mins"
+        },
+        {
+          "subway_station_name": "Blandford Street",
+          "subway_line": "GREEN",
+          "subway_route": "B - Boston College",
+          "distance": "0.6 km",
+          "walking_time": "9 mins"
+        },
+        {
+          "subway_station_name": "Boston University Central",
+          "subway_line": "GREEN",
+          "subway_route": "B - Boston College",
+          "distance": "0.6 km",
+          "walking_time": "9 mins"
+        }
+      ]
+    }
+  },
+  {
+    "Apartment": {
+      "apt_address": "111 Queensberry St APT 5, Boston, MA 02215",
+      "apt_unit": 99,
+      "apt_building_name": "NotAvailable",
+      "apt_rent": "$3450",
+      "apt_bedroom_count": 2,
+      "apt_bathroom_count": 1,
+      "apt_living_area": "700.0 sq ft",
+      "apt_transit_score Score": 95,
+      "apt_latitude": 42.342148,
+      "apt_longitude": -71.10047,
+      "apt_url": "https://www.zillow.com//homedetails/111-Queensberry-St-APT-5-Boston-MA-02215/2126746418_zpid/",
+      "apt_image_url": "https://photos.zillowstatic.com/fp/71e6b1d1a88aad72679808bff3f18184-p_e.jpg"
+    },
+    "Nearby Places": {
+      "Parks": [
+        {
+          "openspace_name": "Ramler Park",
+          "openspace_type": "Parks, Playgrounds & Athletic Fields",
+          "distance": "0.1 km",
+          "walking_time Time": "2 mins"
+        },
+        {
+          "openspace_name": "Park Drive I",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.2 km",
+          "walking_time Time": "3 mins"
+        },
+        {
+          "openspace_name": "Park Drive II",
+          "openspace_type": "Parkways, Reservations & Beaches",
+          "distance": "0.2 km",
+          "walking_time Time": "3 mins"
+        }
+      ],
+      "Restaurants": [
+        {
+          "restaurant_name": "Wow Tikka",
+          "restaurant_cuisine": "Indian",
+          "restaurant_rating": 4.7,
+          "distance": "0.3 km",
+          "walking_time Time": "4 mins",
+          "restaurant_url": "https://www.yelp.com/biz/wow-tikka-boston-2?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Gogo ya",
+          "restaurant_cuisine": "Mexican",
+          "restaurant_rating": 3.8,
+          "distance": "0.3 km",
+          "walking_time Time": "5 mins",
+          "restaurant_url": "https://www.yelp.com/biz/gogo-ya-boston?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        },
+        {
+          "restaurant_name": "Rod Thai Family Taste",
+          "restaurant_cuisine": "Other",
+          "restaurant_rating": 4.0,
+          "distance": "0.3 km",
+          "walking_time Time": "3 mins",
+          "restaurant_url": "https://www.yelp.com/biz/rod-thai-family-taste-boston-2?adjust_creative=LZkXjIasaeGxsBSkACtcwQ&utm_campaign=yelp_api_v3&utm_medium=api_v3_business_search&utm_source=LZkXjIasaeGxsBSkACtcwQ"
+        }
+      ],
+      "Subway Stations": [
+        {
+          "subway_station_name": "Fenway",
+          "subway_line": "GREEN",
+          "subway_route": "D - Riverside",
+          "distance": "0.5 km",
+          "walking_time": "8 mins"
+        },
+        {
+          "subway_station_name": "Museum Of Fine Arts",
+          "subway_line": "GREEN",
+          "subway_route": "E - Health Street",
+          "distance": "0.9 km",
+          "walking_time": "14 mins"
+        }
+      ]
+    }
+  }
 ]
+
+# Transform Apartment Data
+query_results = transform_apartment_data(query_results)
 
 user_text = 'Meditation is very good. Nowadays people are becoming aware of the importance of meditation. Many hi'
 
@@ -229,12 +502,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 for apartment in query_results:
+    cleaned_address = apartment["apt_address"].split(',', 1)[0]
     st.markdown(f"""
     <div style="background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 20px; margin-bottom: 30px;">
         <div style="display: flex; align-items: flex-start;">
             <div style="flex: 1;">
-                <h2 style="color: #3498DB; margin-top: 0;">{apartment["apt_building_name"]} - Unit {apartment['apt_unit']}</h2>
-                <p style="color: #7f8c8d; font-size: 14px;"><i class="fas fa-map-marker-alt"></i> {apartment['apt_address']}</p>
+                <h2 style="color: #3498DB; margin-top: 0;">{cleaned_address}</h2>
+                <p style="color: #7f8c8d; font-size: 14px;"><i class="fas fa-map-marker-alt"></i> Address - {apartment['apt_address']}</p>
+                <p style="color: #7f8c8d; font-size: 14px;"><i class="fas fa-map-marker-alt"></i> Unit - {apartment['apt_unit']}</p>
                 <div style="display: flex; justify-content: space-between; margin-top: 15px;">
                     <div>
                         <p style="font-weight: bold; color: #2C3E50;">💰 ${apartment['apt_rent']}/month</p>
