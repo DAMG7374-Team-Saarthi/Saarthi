@@ -6,6 +6,7 @@ from graph_structure_entity_linking import GraphDB
 import googlemaps
 import random
 import re
+from sentence_transformers import SentenceTransformer
 
 # Load environment variables from .env file
 load_dotenv()
@@ -487,6 +488,13 @@ def create_nearby_subway_relationship(apartments_df, subway_df):
                 else:
                     print(f"Could not calculate walking time for apartment {apartment['APT_ZPID']} and park {subway['STATION']}.")
 
+# Load Sentence Transformers
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+def generate_embeddings(row):
+    combined_text = f"{row['NAME']} {row['GROUP_DESCRIPTION']} {row['CATEGORY']}"
+    return model.encode(combined_text)
+
 ############################################################################################################################################
 def main():
     conn = snowflake.connector.connect(**snowflake_params)
@@ -568,7 +576,7 @@ With its rich history, diverse amenities, and constant development, Fenway conti
         }"""
         ]
         census_df['DEMOGRAPHICS_EDUCATION_WORKFORCE'] = demographics
-        print(census_df)
+        #print(census_df)
         #insert_census(census_df)
 
         ################# ADD code to insert Utilities #######################
@@ -584,7 +592,8 @@ With its rich history, diverse amenities, and constant development, Fenway conti
         # Insert groups
         query = "SELECT * FROM MEETUP_GROUPS"
         groups_df = pd.read_sql(query, conn)
-        groups_df['DESCRIPTION_VECTOR'] = [[0, 0]] * len(groups_df) ############################ Add Embedding ########################
+        groups_df['DESCRIPTION_VECTOR'] = groups_df.apply(generate_embeddings, axis=1) ############################ Add Embedding ########################
+        print(groups_df)
         #insert_meetup_groups(groups_df)
 
         # Insert Appartments
@@ -623,7 +632,7 @@ With its rich history, diverse amenities, and constant development, Fenway conti
         #create_nearby_park_relationship(apartments_df, parks_df)
 
         ### Subway
-        create_nearby_subway_relationship(apartments_df, subway_df)
+        #create_nearby_subway_relationship(apartments_df, subway_df)
 
         ############################
 

@@ -1,6 +1,7 @@
 from neo4j import GraphDatabase
 import googlemaps
 import pandas as pd
+import json
 
 # Replace with your Neo4j Aura connection details
 URI = "neo4j+s://6f4de360.databases.neo4j.io:7687"  
@@ -215,6 +216,7 @@ class GraphDB:
     '''
 
     def create_meetup_group(self, name, description, link, category, city, zipcode, member_count, past_events, description_vector):
+        #description_vector_str = json.dumps(description_vector.tolist())
         with self.driver.session() as session:
             session.run("""
                 CREATE (m:MeetupGroup {
