@@ -95,8 +95,13 @@ def display_recommend(graph_data):
     # Sample Query Results with Additional Amenities
     query_results = graph_data
 
+    print(graph_data)
+
     # Transform Apartment Data
     query_results = transform_apartment_data(query_results)
+
+    print('*******************')
+    print(query_results)
 
     user_text = 'Meditation is very good. Nowadays people are becoming aware of the importance of meditation. Many hi'
 

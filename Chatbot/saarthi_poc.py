@@ -12,7 +12,9 @@ from saarthi_guards import guard, ban_guard
 from guardrails.errors import ValidationError
 import openai
 import uuid
+from saarthi_recommend import display_recommend
 from saarthi_analytics import insert_text, init_duckdb_connection, create_table, update_text
+from get_apartments import get_data_from_graph
 load_dotenv()
 
 neo4j_uri = os.getenv("NEO4J_URI")
@@ -79,14 +81,24 @@ def main():
     if 'feedback_disabled' not in st.session_state:
         st.session_state.feedback_disabled = True
 
-    st.session_state.summary = None    
+    st.session_state.summary = None
     
-    display_chatbot()
-    display_feedback()
+    # Create tabs
+    tab1, tab2 = st.tabs(["Chatbot", "Feedback"])
+    
+    # Display chatbot in the first tab
+    with tab1:
+        display_chatbot()
+    
+    # Display feedback in the second tab
+    with tab2:
+        display_feedback()
 
 
 def display_feedback():
     if not st.session_state.feedback_disabled:
+        if st.session_state.graph_data is not None:
+            display_recommend(st.session_state.graph_data)
         st.divider()
         st.subheader("Feedback Form")
         
@@ -247,6 +259,10 @@ AI Broker:""",
                     st.write(extracted_preferences.strip())
                     st.session_state.input_disabled = True
                     
+                    st.session_state.graph_data = get_data_from_graph(extracted_preferences)
+                    st.write(st.session_state.graph_data)
+                    st.session_state.input_disabled = True
+
                     message_count = len(st.session_state.messages)
                     st.session_state.conn = init_duckdb_connection()
                     create_table(st.session_state.conn)

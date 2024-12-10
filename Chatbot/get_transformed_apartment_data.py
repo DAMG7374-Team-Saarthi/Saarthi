@@ -1,12 +1,16 @@
 import json
-
+import re
 # Original JSON data
 data = []
 
 def transform_apartment_data(data):
+    
+    data = re.sub(r'[^\x20-\x7E\n\r\t]', '', data)
+    data = json.loads(data)
     converted_data = []
 
     for entry in data:
+
         apartment = entry["Apartment"]
         nearby_places = entry["Nearby Places"]
         

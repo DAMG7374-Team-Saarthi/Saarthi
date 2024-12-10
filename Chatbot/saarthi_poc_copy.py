@@ -10,13 +10,11 @@ from langchain_core.output_parsers import StrOutputParser
 from get_context_data import get_crime_context, get_restaurant_context, get_park_context, get_demographics_context
 from saarthi_guards import guard, ban_guard
 from guardrails.errors import ValidationError
-import openai
 import uuid
 from saarthi_analytics import insert_text, init_duckdb_connection, create_table, update_text
 from saarthi_recommend import display_recommend
 from get_apartments import get_data_from_graph
 load_dotenv()
-
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_AUTH_USER")
 neo4j_auth = os.getenv("NEO4J_AUTH")
@@ -71,7 +69,10 @@ def get_context_from_graph(zipcode, feature, uri, auth):
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
-# Streamlit app
+
+import streamlit as st
+import uuid
+
 # def main():
 #     if 'conversation_id' not in st.session_state:
 #         st.session_state.conversation_id = str(uuid.uuid4())
@@ -81,28 +82,74 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 #     if 'feedback_disabled' not in st.session_state:
 #         st.session_state.feedback_disabled = True
 
-#     st.session_state.summary = None    
+#     st.session_state.summary = None
     
-#     display_chatbot()
+#     # Create tabs
+#     tab1, tab2 = st.tabs(["Chatbot", "Recommendation"])
     
-#     display_feedback()
-
-import streamlit as st
-import uuid
-
+#     # Display chatbot in the first tab
+#     with tab1:
+#         display_chatbot()
+    
+#     # Display feedback in the second tab
+#     with tab2:
+#         display_feedback()
 def main():
     if 'conversation_id' not in st.session_state:
         st.session_state.conversation_id = str(uuid.uuid4())
+    
     st.set_page_config(page_title="Saarthi Chatbot", layout="wide")
-    st.title("Saarthi- Guiding you home")
+    
+    
+    # Custom CSS for styling
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Inter:wght@400&display=swap');
+    
+    .banner {
+        background: linear-gradient(to right, #4B9FE1, #8867C5);
+        padding: 30px;
+        border-radius: 15px;
+        margin: 20px 0;
+        text-align: center;
+    }
+    .banner h1 {
+        font-family: 'Poppins', sans-serif;
+        color: white;
+        font-size: 4.5em;
+        font-weight: 700;
+        margin: 0;
+        padding: 0;
+        letter-spacing: 1px;
+        text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+    }
+    .banner p {
+        font-family: 'Inter', sans-serif;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.4em;
+        margin: 0;
+        padding: 0;
+        margin-top: -5px;
+        letter-spacing: 0.5px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Banner with improved typography
+    st.markdown("""
+    <div class="banner">
+        <h1>Saarthi</h1>
+        <p>Guiding you home</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     if 'feedback_disabled' not in st.session_state:
         st.session_state.feedback_disabled = True
 
     st.session_state.summary = None
     
-    # Create tabs
-    tab1, tab2 = st.tabs(["Chatbot", "Feedback"])
+    # Create tabs with custom styling
+    tab1, tab2 = st.tabs(["💬 Chatbot", "📊 Recommendation"])
     
     # Display chatbot in the first tab
     with tab1:
@@ -110,15 +157,14 @@ def main():
     
     # Display feedback in the second tab
     with tab2:
-        display_feedback()
-
+        # display_feedback()
+        "Coming soon"
 
 
 def display_feedback():
     if not st.session_state.feedback_disabled:
         st.divider()
-        if 'graph_data' not in st.session_state:
-            display_recommend(st.session_state.graph_data)
+        display_recommend(st.session_state.graph_data)
         st.divider()
         st.subheader("Feedback Form")
         
@@ -154,7 +200,6 @@ def display_chatbot():
     # Add this line at the beginning of your script if it's not already there
     if "input_disabled" not in st.session_state:
         st.session_state.input_disabled = False
-    st.header("Chat with Saarthi")
 
     if "conversation" not in st.session_state:
         conversation_prompt = PromptTemplate(
@@ -230,80 +275,125 @@ AI Broker:""",
         ai_response = st.session_state.conversation.predict(input="")
         st.session_state.messages.append({"role": "assistant", "content": ai_response})
 
+    st.markdown("""
+<style>
+div[class*="stChatMessage"][data-testid="user"] .msg {
+    background-color: #ff6b6b !important;
+}
+</style>
+""", unsafe_allow_html=True)
     # Display chat messages with unique keys
     for idx, msg in enumerate(st.session_state.messages):
         if msg["role"] == "user":
-            message(msg["content"], is_user=True, key=f"user_{idx}")
+            message(msg["content"] ,is_user=True, key=f"user_{idx}")
         else:
             message(msg["content"], key=f"assistant_{idx}")
 
-    # Use a form to get user input and clear input field after submission
-    with st.form(key="user_input_form", clear_on_submit=True):
-        user_input = st.text_input("Enter your message:", key="user_input", disabled=st.session_state.input_disabled)
-        submit_button = st.form_submit_button(label="Send")
-    if submit_button and user_input:
-        try:
-            # Validate user input using Guardrails    
-            guard.validate(user_input)
-            try: 
-                ban_guard.validate(user_input)
-            except Exception as e:
-                # Handle unusual prompts or validation failures
-                ai_response = "BAN word!!!"
-                st.session_state.messages.append(
-                        {"role": "assistant", "content": ai_response}
-                    )
-                st.rerun()  
+    user_input = st.chat_input("Enter your message:", key="user_input", disabled=st.session_state.input_disabled)
+    if user_input:
+            try:
+                # Validate user input using Guardrails    
+                guard.validate(user_input)
+                try: 
+                    ban_guard.validate(user_input)
+                except Exception as e:
+                    # Handle unusual prompts or validation failures
+                    ai_response = "BAN word!!!"
+                    st.session_state.messages.append(
+                            {"role": "assistant", "content": ai_response}
+                        )
+                    st.rerun()  
 
-            classification = classify_user_input(user_input)
+                classification = classify_user_input(user_input)
 
-            if classification == 'question':
-                st.session_state.messages.append({"role": "user", "content": user_input})
-                response = handle_question_chain(user_input)
-            # response = user_input    
+                if classification == 'question':
+                    st.session_state.messages.append({"role": "user", "content": user_input})
+                    response = handle_question_chain(user_input)
+                # response = user_input    
+                    st.session_state.messages.append(
+                            {"role": "assistant", "content": response}
+                        )
+                    st.rerun()
+            
+
+                else: 
+                    if user_input.lower().strip() in ["yeah", "let's go", "I am ready", "go ahead"]:
+                        # Process conversation and preferences
+                        conversation_history = st.session_state.memory.load_memory_variables({})["history"]
+                        extracted_preferences = st.session_state.summarization_chain.run(
+                            conversation=conversation_history
+                        )
+                        st.session_state.summary = extracted_preferences
+                        st.subheader("Collected User Preferences")
+                        st.write(extracted_preferences.strip())
+
+                        if 'graph_data' not in st.session_state:
+                            st.session_state.graph_data = None
+                        st.session_state.graph_data = get_data_from_graph(st.session_state.summary)
+                        # st.write(st.session_state.graph_data)
+                        # if st.session_state.graph_data is not None: 
+                        #      display_recommend(st.session_state.graph_data)
+                        st.session_state.input_disabled = True
+                        
+                        message_count = len(st.session_state.messages)
+                        st.session_state.conn = init_duckdb_connection()
+                        create_table(st.session_state.conn)
+                        insert_text(st.session_state.conn, st.session_state.conversation_id, extracted_preferences, message_count)
+                        st.session_state.feedback_disabled = False
+
+                    else:
+                        # Default user input handling
+                        st.session_state.messages.append({"role": "user", "content": user_input})
+                        ai_response = st.session_state.conversation.predict(input=user_input)
+                        st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                        st.rerun()
+
+                        
+            except ValidationError as e:
+                # If validation fails, display an error message
+                response =  "Your text contains profanity or topics which are not relevant for this chat. Please rephrase your sentence and be kind!"
                 st.session_state.messages.append(
                         {"role": "assistant", "content": response}
                     )
-                st.rerun()
+                st.rerun() 
+
+    if not st.session_state.feedback_disabled:
+        st.divider()
+        display_recommend(st.session_state.graph_data)
+        st.divider()
+        st.subheader("Feedback Form")
         
+        if 'feedback_submitted' not in st.session_state:
+            st.session_state.feedback_submitted = False
 
-            else: 
-                if user_input.lower().strip() in ["yeah", "let's go", "I am ready", "go ahead"]:
-                    # Process conversation and preferences
-                    conversation_history = st.session_state.memory.load_memory_variables({})["history"]
-                    extracted_preferences = st.session_state.summarization_chain.run(
-                        conversation=conversation_history
-                    )
-                    st.session_state.summary = extracted_preferences
-                    st.subheader("Collected User Preferences")
-                    st.write(extracted_preferences.strip())
-                    if 'graph_data' not in st.session_state:
-                        st.session_state.graph_data = None
-                    st.session_state.graph_data = get_data_from_graph(extracted_preferences)
-                    st.write(st.session_state.graph_data)
-                    st.session_state.input_disabled = True
-                    
-                    message_count = len(st.session_state.messages)
-                    st.session_state.conn = init_duckdb_connection()
-                    create_table(st.session_state.conn)
-                    insert_text(st.session_state.conn, st.session_state.conversation_id, extracted_preferences, message_count)
-                    st.session_state.feedback_disabled = False
+        if not st.session_state.feedback_submitted:
+            with st.form(key="feedback_form"):
+                name = st.text_input("Name")
+                rating = st.slider("Rate your experience", 1, 5, 3)
+                comments = st.text_area("Additional comments")
+                submit_button = st.form_submit_button("Submit Feedback")
+            
+            if submit_button:
+                try:
+                    update_text(st.session_state.conn, st.session_state.conversation_id, comments, rating, name)
+                    st.session_state.conn.commit()
+                    df = st.session_state.conn.execute("SELECT * FROM saarthi_talks;").df()
+                    print(df)
+                    st.session_state.feedback_submitted = True
+                    st.success("Thank you for your feedback!")
+                except Exception as e:
+                    st.error(f"An error occurred: {str(e)}")
+        else:
+            st.success("Thank you for your feedback!")
+            if st.button("Submit Another Feedback"):
+                st.session_state.feedback_submitted = False
+                st.rerun()
 
-                else:
-                    # Default user input handling
-                    st.session_state.messages.append({"role": "user", "content": user_input})
-                    ai_response = st.session_state.conversation.predict(input=user_input)
-                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                    st.rerun()
 
-                    
-        except ValidationError as e:
-            # If validation fails, display an error message
-            response =  "Your text contains profanity or topics which are not relevant for this chat. Please rephrase your sentence and be kind!"
-            st.session_state.messages.append(
-                    {"role": "assistant", "content": response}
-                )
-            st.rerun()            
+
+
+
+
 
 
 # ------------------------------------------>
@@ -364,7 +454,6 @@ def handle_question_chain(user_input):
 
     # Run the chain with the combined input
     return question_chain.run(combined_input=combined_input)
-
 # ------------------------------------>
 if __name__ == "__main__":
     main()

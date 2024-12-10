@@ -368,7 +368,7 @@ def get_data_from_graph(extracted_preference):
     preference_summary = extracted_preference
     results = run_query(neo4j_URI, neo4j_AUTH, openai_key, preference_summary)
     formatted_json = format_apartment_data(results)
-    print(formatted_json)
+    return formatted_json
 
 # if __name__ == "__main__":
 #    main()

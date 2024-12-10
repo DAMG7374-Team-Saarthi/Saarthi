@@ -4,8 +4,7 @@ import re
 import pandas as pd
 import sys
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
+
 
 
 # Function to identify the intent and extract area/feature
