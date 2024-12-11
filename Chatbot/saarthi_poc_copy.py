@@ -213,7 +213,7 @@ Your goal is to gather specific information from the user about their apartment 
 - The number of bedrooms they need. It should be between 2-3 bedrooms. 
 - The number of bathrooms they prefer. It should be between 1-2 bathrooms. If the user enters something gibberish or large number, tell them to choose a number between 1-2.
 - Any specific requirements regarding restaurants and food places near the apartment.
-- Any other information regarding your preferences or about you that you want to share?
+- Any other information regarding your hobbies or about you that you want to share
 
 Please engage the user in a natural conversation to gather this information.
 - Ask one question at a time.
@@ -252,13 +252,26 @@ AI Broker:""",
         # Summarization prompt template
         summarization_prompt = PromptTemplate(
             input_variables=["conversation"],
-            template="""
-                    Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference, and his personal preferences.
+        #     template="""
+        #             Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference, and his personal preferences.
+
+        #             Conversation:
+        #             {conversation}
+
+        #             Summary:
+        #             """,
+        # )
+         template="""
+                    Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference. While summarizing, add another line which starts with "Hobbies:" and then 1 line summary of his hobbies.
 
                     Conversation:
                     {conversation}
 
-                    Summary:
+                    Example Output: 
+                    
+                    Summary: <apartment preferences>
+
+                    Hobbies: <hobbies>
                     """,
         )
         summarization_chain = LLMChain(

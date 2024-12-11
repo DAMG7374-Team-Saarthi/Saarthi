@@ -46,3 +46,17 @@ def update_text(conn, conversation_id, feedback, rating, name):
         WHERE conversation_id = ?
     """, (feedback, rating, name, conversation_id))
     conn.commit()
+
+
+def get_total_users(conn):
+    result = conn.execute("SELECT COUNT(DISTINCT name) AS total_users FROM saarthi_talks").fetchone()
+    return result[0]
+
+def get_daily_active_users(conn, date):
+    query = """
+        SELECT COUNT(DISTINCT name) AS daily_active_users
+        FROM saarthi_talks
+        WHERE CAST(summary_timestamp as DATE) = ?;
+    """
+    result = conn.execute(query, [date]).fetchone()
+    return result[0]
