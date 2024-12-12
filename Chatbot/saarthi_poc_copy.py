@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import uuid
 from streamlit_chat import message
 from langchain import ConversationChain, LLMChain
 from langchain.chat_models import ChatOpenAI
@@ -10,10 +11,10 @@ from langchain_core.output_parsers import StrOutputParser
 from get_context_data import get_crime_context, get_restaurant_context, get_park_context, get_demographics_context
 from saarthi_guards import guard, ban_guard
 from guardrails.errors import ValidationError
-import uuid
 from saarthi_analytics import insert_text, init_duckdb_connection, create_table, update_text
-from saarthi_recommend import display_recommend
+from saarthi_recommend import display_recommend, separate_summary_and_hobbies
 from get_apartments import get_data_from_graph
+
 load_dotenv()
 neo4j_uri = os.getenv("NEO4J_URI")
 neo4j_user = os.getenv("NEO4J_AUTH_USER")
@@ -49,8 +50,6 @@ def parse_user_query(query):
     return areas.get(area), feature
 
 
-# -----------> end of helper functions
-
 # Functions to fetch data from Neo4j
 def get_context_from_graph(zipcode, feature, uri, auth):
     if feature == "crime":
@@ -70,30 +69,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-import streamlit as st
-import uuid
 
-# def main():
-#     if 'conversation_id' not in st.session_state:
-#         st.session_state.conversation_id = str(uuid.uuid4())
-#     st.set_page_config(page_title="Saarthi Chatbot", layout="wide")
-#     st.title("Saarthi- Guiding you home")
-    
-#     if 'feedback_disabled' not in st.session_state:
-#         st.session_state.feedback_disabled = True
-
-#     st.session_state.summary = None
-    
-#     # Create tabs
-#     tab1, tab2 = st.tabs(["Chatbot", "Recommendation"])
-    
-#     # Display chatbot in the first tab
-#     with tab1:
-#         display_chatbot()
-    
-#     # Display feedback in the second tab
-#     with tab2:
-#         display_feedback()
 def main():
     if 'conversation_id' not in st.session_state:
         st.session_state.conversation_id = str(uuid.uuid4())
@@ -148,23 +124,24 @@ def main():
 
     st.session_state.summary = None
     
-    # Create tabs with custom styling
-    tab1, tab2 = st.tabs(["💬 Chatbot", "📊 Recommendation"])
+    # # Create tabs with custom styling
+    # tab1, tab2 = st.tabs(["💬 Chatbot", "📊 Recommendation"])
     
-    # Display chatbot in the first tab
-    with tab1:
-        display_chatbot()
+    # # Display chatbot in the first tab
+    # with tab1:
+    #     display_chatbot()
     
-    # Display feedback in the second tab
-    with tab2:
-        # display_feedback()
-        "Coming soon"
+    # # Display feedback in the second tab
+    # with tab2:
+    #     # display_feedback()
+    #     "Coming soon"
+    display_chatbot()
 
 
 def display_feedback():
     if not st.session_state.feedback_disabled:
         st.divider()
-        display_recommend(st.session_state.graph_data)
+        display_recommend(st.session_state.graph_data, st.session_state.hobby)
         st.divider()
         st.subheader("Feedback Form")
         
@@ -197,7 +174,6 @@ def display_feedback():
  
 
 def display_chatbot():
-    # Add this line at the beginning of your script if it's not already there
     if "input_disabled" not in st.session_state:
         st.session_state.input_disabled = False
 
@@ -252,15 +228,6 @@ AI Broker:""",
         # Summarization prompt template
         summarization_prompt = PromptTemplate(
             input_variables=["conversation"],
-        #     template="""
-        #             Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference, and his personal preferences.
-
-        #             Conversation:
-        #             {conversation}
-
-        #             Summary:
-        #             """,
-        # )
          template="""
                     Given the following conversation between a user and an AI assistant acting as a rental apartment broker, extract the user's apartment preferences, area preference. While summarizing, add another line which starts with "Hobbies:" and then 1 line summary of his hobbies.
 
@@ -270,7 +237,6 @@ AI Broker:""",
                     Example Output: 
                     
                     Summary: <apartment preferences>
-
                     Hobbies: <hobbies>
                     """,
         )
@@ -336,13 +302,19 @@ div[class*="stChatMessage"][data-testid="user"] .msg {
                         extracted_preferences = st.session_state.summarization_chain.run(
                             conversation=conversation_history
                         )
-                        st.session_state.summary = extracted_preferences
+                        # st.session_state.summary = extracted_preferences
+                        st.session_state.summary, st.session_state.hobby = separate_summary_and_hobbies(extracted_preferences)
+
+
                         st.subheader("Collected User Preferences")
                         st.write(extracted_preferences.strip())
 
-                        if 'graph_data' not in st.session_state:
+                        if 'graph_data' not in st.session_state and 'hobby' not in st.session_state:
                             st.session_state.graph_data = None
+                            st.session_state.hobby=None
                         st.session_state.graph_data = get_data_from_graph(st.session_state.summary)
+
+
                         # st.write(st.session_state.graph_data)
                         # if st.session_state.graph_data is not None: 
                         #      display_recommend(st.session_state.graph_data)
@@ -360,8 +332,7 @@ div[class*="stChatMessage"][data-testid="user"] .msg {
                         ai_response = st.session_state.conversation.predict(input=user_input)
                         st.session_state.messages.append({"role": "assistant", "content": ai_response})
                         st.rerun()
-
-                        
+                       
             except ValidationError as e:
                 # If validation fails, display an error message
                 response =  "Your text contains profanity or topics which are not relevant for this chat. Please rephrase your sentence and be kind!"
@@ -372,7 +343,7 @@ div[class*="stChatMessage"][data-testid="user"] .msg {
 
     if not st.session_state.feedback_disabled:
         st.divider()
-        display_recommend(st.session_state.graph_data)
+        display_recommend(st.session_state.graph_data, st.session_state.hobby)
         st.divider()
         st.subheader("Feedback Form")
         
@@ -402,14 +373,6 @@ div[class*="stChatMessage"][data-testid="user"] .msg {
                 st.session_state.feedback_submitted = False
                 st.rerun()
 
-
-
-
-
-
-
-
-# ------------------------------------------>
 # Define the classification function
 def classify_user_input(user_input):
     # Define the classification chain
@@ -467,7 +430,9 @@ def handle_question_chain(user_input):
 
     # Run the chain with the combined input
     return question_chain.run(combined_input=combined_input)
-# ------------------------------------>
+
+
+
 if __name__ == "__main__":
     main()
 
