@@ -40,9 +40,16 @@ WITH parsed_data AS (
         LIVINGAREA,
         BEDROOMS,
         PRICE,
-        apartment_added_dt
+        apartment_added_dt,
+        updated_at
     FROM {{ ref('br_zillow_apartments') }}
+    -- Incremental filter: only select rows that have updated_at greater than the max in this table
+    {% if is_incremental() %}
+    WHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})
+      AND UNITS IS NOT NULL AND UNITS != '[]'
+    {% else %}
     WHERE UNITS IS NOT NULL AND UNITS != '[]'
+    {% endif %}
 ),
 
 flattened_data AS (
@@ -63,7 +70,7 @@ flattened_data AS (
         pd.BEDROOMS,
         pd.PRICE,
         pd.apartment_added_dt,
-        CURRENT_TIMESTAMP() AS updated_at,
+        pd.updated_at,
         ROW_NUMBER() OVER (PARTITION BY pd.ADDRESS ORDER BY pd.ZPID) AS UNIT
     FROM parsed_data pd,
     LATERAL FLATTEN(input => pd.units_json) u
@@ -85,7 +92,7 @@ units_not_null AS (
         LIVINGAREA,
         TO_NUMBER(unit_json:beds::STRING)::INT AS BEDS,
         TO_NUMBER(REGEXP_REPLACE(unit_json:price::STRING, '[^0-9]', ''))::INT AS PRICE,
-        COALESCE(UNIT, 99) AS UNIT,  -- Replace NULL UNIT values with 99
+        COALESCE(UNIT, 99) AS UNIT,
         apartment_added_dt,
         updated_at
     FROM flattened_data
@@ -109,11 +116,16 @@ units_null AS (
         TO_NUMBER(PRICE)::INT AS PRICE,
         COALESCE(
             TO_NUMBER(REGEXP_REPLACE(UNITS, '[^0-9]', '')), 99
-        )::INT AS UNIT,  -- Replace NULL UNIT values with 99
+        )::INT AS UNIT,
         apartment_added_dt,
-        CURRENT_TIMESTAMP() AS updated_at
+        updated_at
     FROM {{ ref('br_zillow_apartments') }}
+    {% if is_incremental() %}
+    WHERE updated_at > (SELECT MAX(updated_at) FROM {{ this }})
+      AND (UNITS IS NULL OR UNITS = '[]')
+    {% else %}
     WHERE UNITS IS NULL OR UNITS = '[]'
+    {% endif %}
 )
 
 SELECT * FROM units_not_null

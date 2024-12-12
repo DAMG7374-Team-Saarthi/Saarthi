@@ -18,13 +18,19 @@
         'apt_living_area',
         'apt_bedroom_count',
         'apt_rent',
-        'updated_at' 
+        'updated_at'
     ]
 ) }}
 
 WITH source_data AS (
     SELECT *
     FROM {{ ref('sl_zillow_apartments') }}
+    WHERE LATITUDE IS NOT NULL
+      AND LONGITUDE IS NOT NULL
+      {% if is_incremental() %}
+        -- Only select records updated since the last incremental run
+        AND updated_at > (SELECT MAX(updated_at) FROM {{ this }})
+      {% endif %}
 )
 
 SELECT 
@@ -38,24 +44,19 @@ SELECT
     COALESCE(LOTID, '99999999') AS apt_lot_id,
     IMGSRC AS apt_image_url,
     COALESCE(PROPERTYTYPE, 'NotAvailable') AS apt_property_type,
-    
+
     COALESCE(
         BATHROOMS, 
         CASE 
-            -- 1 Bedroom, fill bathrooms based on price
             WHEN BEDS = 1 AND PRICE <= 2993.85 THEN 1
             WHEN BEDS = 1 AND PRICE > 2993.85 THEN 2
-            -- 2 Bedrooms, fill bathrooms based on price
             WHEN BEDS = 2 AND PRICE <= 3514.29 THEN 1
             WHEN BEDS = 2 AND PRICE <= 4524.71 THEN 2
             WHEN BEDS = 2 AND PRICE > 4524.71 THEN 3
-            -- 3 Bedrooms, fill bathrooms based on price
             WHEN BEDS = 3 AND PRICE <= 4400 THEN 1
             WHEN BEDS = 3 AND PRICE <= 6500 THEN 2
             WHEN BEDS = 3 AND PRICE > 6500 THEN 3
-            -- 4 Bedrooms, always 2 bathrooms
             WHEN BEDS = 4 THEN 2
-            -- Default if no conditions are met
             ELSE 1 
         END
     ) AS apt_bathroom_count,
@@ -67,5 +68,3 @@ SELECT
     apartment_added_dt,
     CURRENT_TIMESTAMP() AS updated_at
 FROM source_data
-WHERE LATITUDE IS NOT NULL
-  AND LONGITUDE IS NOT NULL

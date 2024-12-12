@@ -53,3 +53,4 @@ sources:
       - name: raw_boston_openspace
       - name: raw_zillow_apartments
       - name: raw_boston_utilities
+      - name: raw_new_zillow_apartments
