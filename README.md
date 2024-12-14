@@ -54,6 +54,59 @@ Building Saarthi was a journey filled with conundrums—decisions that shaped th
 ![image](https://github.com/user-attachments/assets/2394cc94-b1ad-4058-b6a4-a54cef29b251)
 
 
+##
+### ⚙️ Setup Guide
+
+#### **1. Clone the Repository**
+
+#### **2. Create a Virtual Environment**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### **3. Install Dependencies**
+```bash
+pip install -r requirements.txt
+
+```
+
+#### **4. Configure DBT**
+- Add your profiles.yml configuration for Snowflake:
+```bash
+my_dbt_project:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: <your_account>
+      user: <your_username>
+      password: <your_password>
+      role: <your_role>
+      database: saarthi
+      warehouse: <your_warehouse>
+      schema: boston
+      threads: 4
+      client_session_keep_alive: False
+
+```
+#### **5. Run DBT Models**
+```bash
+cd dbt
+dbt run
+```
+
+
+#### **6. Launch the Streamlit Application**
+```bash
+streamlit run saarthi_main_app.py
+```
+
+#### **7. Generate DBT Documentation**
+```bash
+dbt docs generate
+dbt docs serve
+```
+
 ---
 
-Stay tuned for detailed setup instructions, features, and contribution guidelines to make the most of Saarthi!
