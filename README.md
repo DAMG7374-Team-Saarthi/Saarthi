@@ -92,7 +92,7 @@ my_dbt_project:
 ```
 #### **5. Run DBT Models**
 ```bash
-cd dbt
+cd pipelines
 dbt run
 ```
 
