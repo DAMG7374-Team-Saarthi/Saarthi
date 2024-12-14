@@ -8,8 +8,8 @@ from guardrails.hub import BanList
 # Setup Guard
 topic_guard = Guard().use(
     RestrictToTopic(
-        valid_topics=["apartments", "boston", "apartment hunt", "food", "tourist","rent"],
-        invalid_topics=["politics", "nuclear weapons","Adult movies", "Any political leader", "finance"],
+        valid_topics=["apartments", "boston", "apartment hunt", "food", "tourist","rent", "hobbies", "music"],
+        invalid_topics=["politics", "nuclear weapons", "Any political leader", "finance"],
         disable_classifier=True,
         disable_llm=False,
         on_fail="exception"

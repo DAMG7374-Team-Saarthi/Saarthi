@@ -124,17 +124,6 @@ def main():
 
     st.session_state.summary = None
     
-    # # Create tabs with custom styling
-    # tab1, tab2 = st.tabs(["💬 Chatbot", "📊 Recommendation"])
-    
-    # # Display chatbot in the first tab
-    # with tab1:
-    #     display_chatbot()
-    
-    # # Display feedback in the second tab
-    # with tab2:
-    #     # display_feedback()
-    #     "Coming soon"
     display_chatbot()
 
 
@@ -306,8 +295,8 @@ div[class*="stChatMessage"][data-testid="user"] .msg {
                         st.session_state.summary, st.session_state.hobby = separate_summary_and_hobbies(extracted_preferences)
 
 
-                        st.subheader("Collected User Preferences")
-                        st.write(extracted_preferences.strip())
+                        # st.subheader("Collected User Preferences")
+                        # st.write(extracted_preferences.strip())
 
                         if 'graph_data' not in st.session_state and 'hobby' not in st.session_state:
                             st.session_state.graph_data = None
