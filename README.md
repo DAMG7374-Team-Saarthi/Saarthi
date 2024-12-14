@@ -48,6 +48,10 @@ Building Saarthi was a journey filled with conundrums—decisions that shaped th
 ![dbt-cloud](https://img.shields.io/badge/dbt%20Cloud-FF694B?style=for-the-badge&logo=dbt&logoColor=white)
 
 
+### Technical Architecture:
+![image](https://github.com/user-attachments/assets/cf53504b-1508-4510-ace7-afa75b684c57)
+
+![image](https://github.com/user-attachments/assets/2394cc94-b1ad-4058-b6a4-a54cef29b251)
 
 
 ---
